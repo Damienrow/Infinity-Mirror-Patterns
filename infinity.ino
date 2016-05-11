@@ -72,6 +72,7 @@ float Dampening[1];
 const int lightning_sec_count = 9;  // the maximum "width" of each lightning sequence
 const int lightning_seq_count = 9;  // the maximum "duration" of each lightning sequence
 
+// new years vars
 int newYearsFireworksCounter = -1;
 int newYearsFireworksState = 0;
 int newYearsFireworksTwinkleFadeState = 0;
@@ -79,6 +80,15 @@ int newYearsFireworksTwinkleSpreadState = 0;
 int newYearsFireworksStartPoint;
 int newYearsFireworksEndPoint;
 int newYearsFireworksDir;
+
+// valentines vars
+int valentinesState = 0;
+uint32_t curValentinesColor;
+
+// Thanksgiving vars
+int thanksgivingState = 0;
+uint32_t curColor;
+int thanksgivingWaitState = 0;
 
 // button vars
 bool buttonDown = false;
@@ -109,6 +119,11 @@ uint32_t new_years_fireworks_yellow;
 uint32_t valentines_pink;
 uint32_t valentines_red;
 uint32_t valentines_purple;
+
+// Thanksgiving color palette
+uint32_t thanksgiving_brown;
+uint32_t thanksgiving_lightbrown;
+uint32_t thanksgiving_red;
 
 void setup() 
 {
@@ -141,6 +156,11 @@ void setup()
    valentines_pink = pixels.Color(220, 68,  68);
    valentines_red = pixels.Color(187, 10, 10);
    valentines_purple = pixels.Color(101, 1, 92);
+
+   // thanksgiving colors
+   thanksgiving_brown = pixels.Color(79, 33, 0);
+   thanksgiving_lightbrown = pixels.Color(168, 86, 12);
+   thanksgiving_red = pixels.Color(112, 9, 0);
    
    // set up rgb incrementer
    decColor = 0; // Start off with red. 
@@ -224,7 +244,8 @@ void loop()
      // star_fall(pixels.Color(255, 255, 210), pulseTailLength, pulseFadeRate, 8, 60);
      // halloween_fire();
      // new_years_fireworks();
-     valentines_breathe();
+     // valentines_breathe();
+     thanksgiving_chase(10, 100);
 }
 
 bool buttonControl(){
@@ -245,8 +266,51 @@ bool buttonControl(){
     }
 }
 
-int valentinesState = 0;
-uint32_t curValentinesColor;
+void thanksgiving_chase(int waitMultiplyer, uint8_t wait) {
+    thanksgivingWaitState++;
+    if(thanksgivingWaitState % waitMultiplyer != 0){
+        delay(wait);
+        return;
+    }
+    
+    thanksgivingState %= NUMPIXELS;
+
+    curColor = thanksgiving_brown;
+
+    // the second half of the pattern
+    int i;
+    for (i = 0; i + thanksgivingState < NUMPIXELS; i++) {
+        pixels.setPixelColor(i + thanksgivingState, curColor);
+        if((i + 1) % 3 == 0){
+            if(curColor == thanksgiving_lightbrown){
+                curColor = thanksgiving_brown;
+            }else if(curColor == thanksgiving_brown){
+                curColor = thanksgiving_red;
+            }else{
+                curColor = thanksgiving_lightbrown;
+            }
+        }
+    }
+
+    // the first half of the pattern
+    for (int j = 0; j  < thanksgivingState; j++) {
+        pixels.setPixelColor(j, curColor);
+        if((j + i + 1) % 3 == 0){
+            if(curColor == thanksgiving_lightbrown){
+                curColor = thanksgiving_brown;
+            }else if(curColor == thanksgiving_brown){
+                curColor = thanksgiving_red;
+            }else{
+                curColor = thanksgiving_lightbrown;
+            }
+        }
+    }
+    
+    pixels.show();
+    delay(wait);
+    thanksgivingState += 1;
+}
+
 void valentines_breathe(){
     float breatheSpeed = 0.01; 
     int breatheDelay = 5;
