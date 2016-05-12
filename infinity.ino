@@ -10,7 +10,20 @@ to switch between the patterns.
 #define NUMPIXELS 30
 #define PI 3.1415
 
-const int buttonPin = 2;     // the number of the pushbutton pin
+const int buttonPin1 = 10;     // the number of the pushbutton pin
+const int buttonPin2 = 9;     // the number of the pushbutton pin
+const int buttonPin3 = 8;     // the number of the pushbutton pin
+
+// button vars
+bool buttonDown = false;
+bool buttonPressed = false;
+int buttonState = 0;         // variable for reading the pushbutton status
+
+// mode vars
+int curMode = 0; // the current mode
+int curAltMode = 0; // the alt setting for the current mode
+int numModes = 15;
+int numHolidayModes = 5;
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -90,15 +103,6 @@ int thanksgivingState = 0;
 uint32_t curColor;
 int thanksgivingWaitState = 0;
 
-// button vars
-bool buttonDown = false;
-bool buttonPressed = false;
-int buttonState = 0;         // variable for reading the pushbutton status
-
-// mode vars
-int curMode = 0;
-int numModes = 14;
-
 // Holiday colors
 // christmas palette
 uint32_t christmas_red;
@@ -124,6 +128,11 @@ uint32_t valentines_purple;
 uint32_t thanksgiving_brown;
 uint32_t thanksgiving_lightbrown;
 uint32_t thanksgiving_red;
+
+// Halloween color pallette
+uint32_t halloween_green;
+uint32_t halloween_brown; // combination of green and purple
+uint32_t halloween_purple;
 
 void setup() 
 {
@@ -161,6 +170,11 @@ void setup()
    thanksgiving_brown = pixels.Color(79, 33, 0);
    thanksgiving_lightbrown = pixels.Color(168, 86, 12);
    thanksgiving_red = pixels.Color(112, 9, 0);
+
+   // halloween colors
+   halloween_green = pixels.Color(74, 150, 12);
+   halloween_brown = pixels.Color(128, 91, 86);
+   halloween_purple = pixels.Color(158, 8, 148);
    
    // set up rgb incrementer
    decColor = 0; // Start off with red. 
@@ -173,7 +187,9 @@ void setup()
 
    randomSeed(analogRead(5));
 
-   pinMode(buttonPin, INPUT);
+   pinMode(buttonPin1, INPUT);
+   pinMode(buttonPin2, INPUT);
+   pinMode(buttonPin3, INPUT);
    
    pixels.begin(); 
    Serial.begin(9600);
@@ -216,10 +232,10 @@ void loop()
 //            colored_breathe(200, 0.009, 5);
 //            break;
 //        case 7:
-//            rainbowCycle(20);
+//            rainbow_cycle(20);
 //            break;
 //        case 8:
-//            theaterChase(pixels.Color(127, 127, 127), 50); // White
+//            theater_chase(pixels.Color(127, 127, 127), 50); // White
 //            break;      
 //        case 9:
 //            christmas_twinkle(true);
@@ -236,21 +252,23 @@ void loop()
 //        case 13:
 //            lightning(5, 6);
 //            break;
+//        case 14:
+//            thanksgiving_chase(10, 100);
+//            break;
 //   }
-     // strobe(pixels.Color(255, 255, 255), 100);
-     // sparkle(pixels.Color(175, 195, 255), 10);
-     // snow_sparkle(pixels.Color(40, 40, 40), 70, 100, 100);
-     // running_lights(0xff,0xff,0x28, 125);
-     // star_fall(pixels.Color(255, 255, 210), pulseTailLength, pulseFadeRate, 8, 60);
-     // halloween_fire();
-     // new_years_fireworks();
-     // valentines_breathe();
-     thanksgiving_chase(10, 100);
+//      strobe(pixels.Color(255, 255, 255), 100);
+//      sparkle(pixels.Color(175, 195, 255), 10);
+//      snow_sparkle(pixels.Color(40, 40, 40), 70, 100, 100);
+//      running_lights(0xff,0xff,0x28, 125);
+//      halloween_fire();
+      new_years_fireworks();
+//      valentines_breathe();
+     
 }
 
 bool buttonControl(){
     // check if button pressed (down and release == a press)
-    if(digitalRead(buttonPin) == HIGH)
+    if(digitalRead(buttonPin1) == HIGH)
     {
         buttonDown = true;
     }else{
@@ -266,6 +284,13 @@ bool buttonControl(){
     }
 }
 
+/************************
+ *                      *
+ *   Holiday Patterns   *
+ *                      *
+ ************************/
+
+// thanksgiving colors move along the led strip
 void thanksgiving_chase(int waitMultiplyer, uint8_t wait) {
     thanksgivingWaitState++;
     if(thanksgivingWaitState % waitMultiplyer != 0){
@@ -311,6 +336,7 @@ void thanksgiving_chase(int waitMultiplyer, uint8_t wait) {
     thanksgivingState += 1;
 }
 
+// simple "breathing" (dim and brighten) effect with Valentine's colors
 void valentines_breathe(){
     float breatheSpeed = 0.01; 
     int breatheDelay = 5;
@@ -344,6 +370,9 @@ void valentines_breathe(){
     pixels.show();
     delay(breatheDelay);
 }
+
+// Randomly spawn a pulse wave that travels to a spot near the center of the strip and
+// "explodes" outward in a twinkling pattern that slowly fades (e.g. a firework).
 // If the timeing of this function looks like nonsense, that's because it is.
 // The timing was hand coded by trial and error and will need to be adjusted the same way.
 void new_years_fireworks(){
@@ -373,8 +402,9 @@ void new_years_fireworks(){
 
 	switch(newYearsFireworksCounter){
 		case 0:
-  			new_years_fireworks_rising(new_years_fireworks_yellow, 5, 0.57, newYearsFireworksStartPoint, newYearsFireworksEndPoint, newYearsFireworksDir);
-        // check if firework rising is finished
+        // play out the rising pulse wave
+  			new_years_fireworks_rising(new_years_fireworks_yellow, 5, 0.57, 
+      			newYearsFireworksStartPoint, newYearsFireworksEndPoint, newYearsFireworksDir);
         if(new_years_fireworks_finished_current()){
             newYearsFireworksCounter++;
             newYearsFireworksState = 0;
@@ -390,6 +420,7 @@ void new_years_fireworks(){
         }
         break;
     case 2:
+        // play out the twinlking fading effect
         new_years_fireworks_twinkle(newYearsFireworksEndPoint);
         if(newYearsFireworksTwinkleFadeState == 0){
             newYearsFireworksCounter++;
@@ -466,6 +497,7 @@ void new_years_fireworks_rising(uint32_t headColor, int tailLength, float fadeRa
     delay(90);
 }
 
+// randomly briefly light up sections of the led strip in a way that is evocative of lighting
 void lightning(int num_sections, int section_len)
 {
     // randomly select the color of the current lightning sequence
@@ -521,63 +553,27 @@ void lightning(int num_sections, int section_len)
     clear_leds();
 }
 
-void bouncing_balls(uint32_t ballColor, int BallCount) {
-      for (int i = 0 ; i < BallCount ; i++) {
-          TimeSinceLastBounce[i] =  millis() - ClockTimeSinceLastBounce[i];
-          Height[i] = 0.5 * Gravity * pow( TimeSinceLastBounce[i]/1000 , 2.0 ) + ImpactVelocity[i] * TimeSinceLastBounce[i]/1000;
-    
-        if ( Height[i] < 0 ) {                      
-            Height[i] = 0;
-            ImpactVelocity[i] = Dampening[i] * ImpactVelocity[i];
-            ClockTimeSinceLastBounce[i] = millis();
-      
-            if ( ImpactVelocity[i] < 0.01 ) {
-                ImpactVelocity[i] = ImpactVelocityStart;
-            }
-          }
-          Position[i] = round( Height[i] * (NUMPIXELS - 1) / StartHeight);
-      }
-    
-      for (int i = 0 ; i < BallCount ; i++) {
-          pixels.setPixelColor(Position[i], ballColor);
-      }
-      
-      pixels.show();
-      clear_leds();
-}
-
+// purple light which flickers and randomly has 1/10 green and red/brown pixels distributed thoughout.
+// It is supposed to be evocative of a purple and green fire.
 void halloween_fire(){
-    //  Uncomment one of these RGB (Red, Green, Blue) values to
-    //  set the base color of the flame.  The color will flickr
-    //  based on the initial base color
-    
-    //  Regular (orange) flame:
-    // int r = 226, g = 121, b = 35;
-    
-    //  Purple flame:
-    //  int r = 158, g = 8, b = 148;
-    
-    //  Green flame:
-    //  int r = 74, g = 150, b = 12;
-
-    // brown flame (mix of purple and green)
-    // int r = 128, int g = 91, int b = 86;
-
-    // more yellow flame
-    // int r = 226, g = 121, b = 35;
-
-    int r, g, b;
+    uint8_t r, g, b;
     //  Flicker, based on our initial RGB values
     for(int i = 0; i < pixels.numPixels(); i++) {
         switch(random(10)){
             case 0:
-                r = 74, g = 150, b = 12; // green
+                r = getColorComponent(halloween_green, 1);
+                g = getColorComponent(halloween_green, 2);
+                b = getColorComponent(halloween_green, 3);
                 break;
             case 1:
-                r = 128, g = 91, b = 86; // brown (mix of green and purple)
+                r = getColorComponent(halloween_brown, 1);
+                g = getColorComponent(halloween_brown, 2);
+                b = getColorComponent(halloween_brown, 3);
                 break;
              default:
-                r = 158, g = 8, b = 148; // purple
+                r = getColorComponent(halloween_purple, 1);
+                g = getColorComponent(halloween_purple, 2);
+                b = getColorComponent(halloween_purple, 3);
                 break;
         }
         
@@ -597,8 +593,8 @@ void halloween_fire(){
     delay(random(50, 150));
 }
 
-// Pulse waves are randomly spawned from the center of the strip and travel (firworks)
-// They pulses are randomly colored red, white, or blue.
+// Pulse waves are randomly spawned from the center of the strip and travel outward (firworks)
+// The pulses are randomly colored red, white, or blue.
 void fourth_of_july_fireworks(uint8_t tailLength, double fadeRate, int spawnRate, uint8_t wait){
     if(NUMPIXELS % 2 == 1){
         fourth_of_july_fireworks_odd(tailLength, spawnRate, fadeRate);
@@ -788,112 +784,6 @@ int find_first_fourth_head(int center, int searchStart, int searchEnd, int searc
     return firstHeadPos;
 }
 
-void fire(int cooling, int sparking, int speedDelay) {
-  static byte heat[NUMPIXELS];
-  int cooldown;
-  
-  // Step 1.  Cool down every cell a little
-  for( int i = 0; i < NUMPIXELS; i++) {
-    cooldown = random(0, ((cooling * 10) / NUMPIXELS) + 2);
-    
-    if(cooldown>heat[i]) {
-      heat[i]=0;
-    } else {
-      heat[i]=heat[i]-cooldown;
-    }
-  }
-  
-  // Step 2.  Heat from each cell drifts 'up' and diffuses a little
-  for( int k= NUMPIXELS - 1; k >= 2; k--) {
-    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
-  }
-    
-  // Step 3.  Randomly ignite new 'sparks' near the bottom
-  if( random(255) < sparking ) {
-    int y = random(7);
-    heat[y] = heat[y] + random(160,255);
-    //heat[y] = random(160,255);
-  }
-
-  // Step 4.  Convert heat to LED colors
-  for( int j = 0; j < NUMPIXELS; j++) {
-    set_pixel_heat_color(j, heat[j] );
-  }
-
-  pixels.show();
-  delay(speedDelay);
-}
-
-void set_pixel_heat_color (int Pixel, byte temperature) {
-    // Scale 'heat' down from 0-255 to 0-191
-    byte t192 = round((temperature/255.0)*191);
-    
-    // calculate ramp up from
-    byte heatramp = t192 & 0x3F; // 0..63
-    heatramp <<= 2; // scale up to 0..252
-    
-    // figure out which third of the spectrum we're in:
-    if( t192 > 0x80) {                     // hottest
-      pixels.setPixelColor(Pixel, 255, 255, heatramp);
-    } else if( t192 > 0x40 ) {             // middle
-      pixels.setPixelColor(Pixel, 255, heatramp, 0);
-    } else {                               // coolest
-      pixels.setPixelColor(Pixel, heatramp, 0, 0);
-    }
-}
-
-void running_lights(byte red, byte green, byte blue, int WaveDelay) {
-    running_lights_state++; // = 0; //Position + Rate;
-    running_lights_state %= 100;
-    
-    for(int i=0; i<NUMPIXELS; i++) {
-      // sine wave, 3 offset waves make a rainbow!
-      //float level = sin(i+Position) * 127 + 128;
-      //setPixel(i,level,0,0);
-      //float level = sin(i+Position) * 127 + 128;
-      pixels.setPixelColor(i,((sin(i + running_lights_state) * 127 + 128) / 255) * red,
-                             ((sin(i + running_lights_state) * 127 + 128) / 255) * green,
-                             ((sin(i + running_lights_state) * 127 + 128) / 255) * blue);
-    }
-    
-    pixels.show();
-    delay(WaveDelay);
-}
-
-// This function turns the entire strip to color and randomly brightnes one pixel.
-// If color is already at at maximum brightness this function will do nothing.
-void snow_sparkle(uint32_t color, int brightenAmount, int sparkleSpawnRate, int sparkleTime) {
-    set_color(color);
-    if(random(sparkleSpawnRate) == 1){
-        int i = random(NUMPIXELS);
-        pixels.setPixelColor(i, pixels.Color(getPixelColorComponent(i, 1) + brightenAmount, getPixelColorComponent(i, 2) + brightenAmount, getPixelColorComponent(i, 3) + brightenAmount));
-        pixels.show();
-        delay(sparkleTime);
-        pixels.setPixelColor(i, color);
-        pixels.show(); 
-    }
-    delay(10);
-}
-
-void sparkle(uint32_t color, int SpeedDelay) {
-    int i = random(NUMPIXELS);
-    pixels.setPixelColor(i, color);
-    pixels.show();
-    delay(SpeedDelay);
-    clear_leds();
-}
-
-// The most obnoxious lighting in existence.
-// I decided not to include this in the final project for the sake of public health.
-void strobe(uint32_t color, int strobeSpeed){
-    set_color(color);
-    pixels.show();
-    delay(strobeSpeed);
-    clear_leds();
-    pixels.show();
-    delay(strobeSpeed);
-}
-
 // Twinkle effect with christmas colors.
 void christmas_twinkle(bool traditionalColors){
     // fade out
@@ -970,8 +860,151 @@ void christmas_twinkle(bool traditionalColors){
     delay(20);
 }
 
-//Theatre-style crawling lights.
-void theaterChase(uint32_t c, uint8_t wait) {
+/************************
+ *                      *
+ *    Misc  Patterns    *
+ *                      *
+ ************************/
+
+// realistically moves a pixel up and down the strip in a simulation of a boucing ball
+void bouncing_balls(uint32_t ballColor, int BallCount) {
+      for (int i = 0 ; i < BallCount ; i++) {
+          TimeSinceLastBounce[i] =  millis() - ClockTimeSinceLastBounce[i];
+          Height[i] = 0.5 * Gravity * pow( TimeSinceLastBounce[i]/1000 , 2.0 ) + ImpactVelocity[i] * TimeSinceLastBounce[i]/1000;
+    
+        if ( Height[i] < 0 ) {                      
+            Height[i] = 0;
+            ImpactVelocity[i] = Dampening[i] * ImpactVelocity[i];
+            ClockTimeSinceLastBounce[i] = millis();
+      
+            if ( ImpactVelocity[i] < 0.01 ) {
+                ImpactVelocity[i] = ImpactVelocityStart;
+            }
+          }
+          Position[i] = round( Height[i] * (NUMPIXELS - 1) / StartHeight);
+      }
+    
+      for (int i = 0 ; i < BallCount ; i++) {
+          pixels.setPixelColor(Position[i], ballColor);
+      }
+      
+      pixels.show();
+      clear_leds();
+}
+
+// a pillar of fire moving up the led strip. 
+// Looks very good with a diffusion filter over the lights (e.g. toilet paper)
+void fire(int cooling, int sparking, int speedDelay) {
+  static byte heat[NUMPIXELS];
+  int cooldown;
+  
+  // Step 1.  Cool down every cell a little
+  for( int i = 0; i < NUMPIXELS; i++) {
+    cooldown = random(0, ((cooling * 10) / NUMPIXELS) + 2);
+    
+    if(cooldown>heat[i]) {
+      heat[i]=0;
+    } else {
+      heat[i]=heat[i]-cooldown;
+    }
+  }
+  
+  // Step 2.  Heat from each cell drifts 'up' and diffuses a little
+  for( int k= NUMPIXELS - 1; k >= 2; k--) {
+    heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2]) / 3;
+  }
+    
+  // Step 3.  Randomly ignite new 'sparks' near the bottom
+  if( random(255) < sparking ) {
+    int y = random(7);
+    heat[y] = heat[y] + random(160,255);
+    //heat[y] = random(160,255);
+  }
+
+  // Step 4.  Convert heat to LED colors
+  for( int j = 0; j < NUMPIXELS; j++) {
+    set_pixel_heat_color(j, heat[j] );
+  }
+
+  pixels.show();
+  delay(speedDelay);
+}
+
+void set_pixel_heat_color (int Pixel, byte temperature) {
+    // Scale 'heat' down from 0-255 to 0-191
+    byte t192 = round((temperature/255.0)*191);
+    
+    // calculate ramp up from
+    byte heatramp = t192 & 0x3F; // 0..63
+    heatramp <<= 2; // scale up to 0..252
+    
+    // figure out which third of the spectrum we're in:
+    if( t192 > 0x80) {                     // hottest
+      pixels.setPixelColor(Pixel, 255, 255, heatramp);
+    } else if( t192 > 0x40 ) {             // middle
+      pixels.setPixelColor(Pixel, 255, heatramp, 0);
+    } else {                               // coolest
+      pixels.setPixelColor(Pixel, heatramp, 0, 0);
+    }
+}
+
+// moves several strips of color arround the led strip
+void running_lights(byte red, byte green, byte blue, int WaveDelay) {
+    running_lights_state++; // = 0; //Position + Rate;
+    running_lights_state %= 100;
+    
+    for(int i=0; i<NUMPIXELS; i++) {
+      // sine wave, 3 offset waves make a rainbow!
+      //float level = sin(i+Position) * 127 + 128;
+      //setPixel(i,level,0,0);
+      //float level = sin(i+Position) * 127 + 128;
+      pixels.setPixelColor(i,((sin(i + running_lights_state) * 127 + 128) / 255) * red,
+                             ((sin(i + running_lights_state) * 127 + 128) / 255) * green,
+                             ((sin(i + running_lights_state) * 127 + 128) / 255) * blue);
+    }
+    
+    pixels.show();
+    delay(WaveDelay);
+}
+
+// This function turns on the entire strip to color and randomly brightnes one pixel.
+// If color is already at at maximum brightness this function will do nothing.
+void snow_sparkle(uint32_t color, int brightenAmount, int sparkleSpawnRate, int sparkleTime) {
+    set_color(color);
+    if(random(sparkleSpawnRate) == 1){
+        int i = random(NUMPIXELS);
+        pixels.setPixelColor(i, pixels.Color(getPixelColorComponent(i, 1) + brightenAmount, getPixelColorComponent(i, 2) + brightenAmount, getPixelColorComponent(i, 3) + brightenAmount));
+        pixels.show();
+        delay(sparkleTime);
+        pixels.setPixelColor(i, color);
+        pixels.show(); 
+    }
+    delay(10);
+}
+
+// randomly turn some pixels on and off. 
+// it is supposed to be evocative of sparklying sunlight on a surface (e.g. a lake)
+void sparkle(uint32_t color, int SpeedDelay) {
+    int i = random(NUMPIXELS);
+    pixels.setPixelColor(i, color);
+    pixels.show();
+    delay(SpeedDelay);
+    clear_leds();
+}
+
+// The most obnoxious lighting in existence.
+// I recommend not including this for the sake of public health.
+void strobe(uint32_t color, int strobeSpeed){
+    set_color(color);
+    pixels.show();
+    delay(strobeSpeed);
+    clear_leds();
+    pixels.show();
+    delay(strobeSpeed);
+}
+
+// Theatre-style crawling lights.
+void theater_chase(uint32_t c, uint8_t wait) {
     theaterChaseState++;
     theaterChaseState %= 3;
     for (int i = 0; i < pixels.numPixels(); i = i + 3) {
@@ -986,34 +1019,36 @@ void theaterChase(uint32_t c, uint8_t wait) {
     }
 }
 
-// Slightly different, this makes the rainbow equally distributed throughout
-void rainbowCycle(uint8_t wait) {
+// moves a rainbow across the led strip. rainbow equally distributed throughout
+void rainbow_cycle(uint8_t wait) {
     uint16_t i;
 
     rainbowCycleState++;
     rainbowCycleState %= 256;
     
     for(i=0; i< pixels.numPixels(); i++) {
-        pixels.setPixelColor(i, Wheel(((i * 256 / pixels.numPixels()) + rainbowCycleState) & 255));
+        pixels.setPixelColor(i, wheel(((i * 256 / pixels.numPixels()) + rainbowCycleState) & 255));
     }
     
     pixels.show();
     delay(wait);
 }
 
-uint32_t Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+// return a color on the color wheel using wheel pos as the position
+uint32_t wheel(byte wheelPos) {
+  wheelPos = 255 - wheelPos;
+  if(wheelPos < 85) {
+    return pixels.Color(255 - wheelPos * 3, 0, wheelPos * 3);
   }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  if(wheelPos < 170) {
+    wheelPos -= 85;
+    return pixels.Color(0, wheelPos * 3, 255 - wheelPos * 3);
   }
-  WheelPos -= 170;
-  return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  wheelPos -= 170;
+  return pixels.Color(wheelPos * 3, 255 - wheelPos * 3, 0);
 }
 
+// read the unput from a mic and visualize the intensity as two mirrored bars on the led strip
 void music_visualizer(){
    unsigned long startMillis= millis();  // Start of sample window
    unsigned int peakToPeak = 0;   // peak-to-peak level
@@ -1044,7 +1079,7 @@ void music_visualizer(){
    meter_leds(volts);
 }
 
-// light up from both ends up to the pixel specified by max_val
+// Light up from both ends up to the pixel specified by max_val
 // max_val is expected in volts
 void meter_leds(float max_val){
   for(int i=0; i < NUMPIXELS/2; i++){
@@ -1078,6 +1113,7 @@ void increment_rgb(){
     }
 }
 
+// a long bright head with a long tail moves along the pixel strip
 void pulse_wave(uint32_t headColor, uint8_t tailLength, double fadeRate, uint8_t wait){
     // move the pulse along
     for(int i = NUMPIXELS; i > 0; i--){
@@ -1108,8 +1144,7 @@ void pulse_wave(uint32_t headColor, uint8_t tailLength, double fadeRate, uint8_t
     delay(wait);
 }
 
-// pulse waves are randomly spawned from the center of the strip and travel 
-// radomly to the left or the right
+// pulse waves are randomly spawned from the center of the strip and travel randomly to the left or the right
 void star_fall(uint32_t color, uint8_t tailLength, double fadeRate, int spawnRate, uint8_t wait){
     if(NUMPIXELS % 2 == 1){
         maintain_star_fall_odd(color, tailLength, spawnRate, fadeRate);
@@ -1188,6 +1223,7 @@ void maintain_star_fall_odd(uint32_t headColor, uint32_t tailLength, int spawnRa
     }
 }
 
+// moves the star fall pattern along the pixels
 void maintain_star_fall_even(uint32_t headColor, uint32_t tailLength, int spawnRate, double fadeRate){
     // spawn a new star fall
     int beginCenter = NUMPIXELS / 2 - 1;
@@ -1234,6 +1270,7 @@ void maintain_star_fall_even(uint32_t headColor, uint32_t tailLength, int spawnR
     }
 }
 
+// searches the pixels from searchStart towards searchEnd in searchDir direction for a pixel withh headColor.
 // search dir must be 1 or -1
 // iteratively applying searchDir to searchStart should eventually reach searchEnd
 int star_fall_find_head(uint32_t headColor, int searchStart, int searchEnd, int searchDir){
@@ -1249,7 +1286,7 @@ int star_fall_find_head(uint32_t headColor, int searchStart, int searchEnd, int 
     return -1;
 }
 
-// fire effect
+// flickers the pixels in a way that is supposed to be evocative of fire
 void  fire_pulse(){
     int r = 255;
     int g = r-40;
@@ -1269,6 +1306,7 @@ void  fire_pulse(){
     delay(random(50,150));
 }
 
+// randomly sets a pixel to full brightness, then darkens it until it is off
 void twinkle(uint32_t c, int twinkle_rate){
     // Random spawn
     if (random(twinkle_rate) == 1) {
@@ -1310,6 +1348,8 @@ void breathe(uint32_t c, float maxBrightness, float breatheSpeed, int breathDela
     delay(breathDelay);
 }
 
+// brighten, then darken the color.
+// switches colors randomly when brightness == 0
 void colored_breathe(float maxBrightness, float breatheSpeed, int breathDelay){
     if(breatheState == 0){
         breatheColor = pixels.Color(random(255), random(255), random(255));
@@ -1329,14 +1369,15 @@ void colored_breathe(float maxBrightness, float breatheSpeed, int breathDelay){
     delay(breathDelay);
 }
 
-void setBrightness(float brightness){
-    for(int i = 0; i < NUMPIXELS; i++){
-        pixels.setPixelColor(i, pixels.Color( brightness * getPixelColorComponent(i, 1) / ((float)255),
-                                              brightness * getPixelColorComponent(i, 2) / ((float)255),
-                                              brightness * getPixelColorComponent(i, 3) / ((float)255)));
-    }
-}
+/************************
+ *                      *
+ *  Utility Functions   *
+ *                      *
+ ************************/
 
+
+// the color component segment of specified pixel
+// 1 = red, 2 = blue, 3 = green
 uint8_t getPixelColorComponent(uint8_t pixelNum, uint8_t segment){
   uint8_t segmentColorValue;
   uint32_t c = pixels.getPixelColor(pixelNum);
@@ -1354,6 +1395,34 @@ uint8_t getPixelColorComponent(uint8_t pixelNum, uint8_t segment){
   return segmentColorValue;
 }
 
+// the color component segment of the color c
+// 1 = red, 2 = blue, 3 = green
+uint8_t getColorComponent(uint32_t c, uint8_t segment){
+  uint8_t segmentColorValue;
+  switch( segment ){
+    case 1:
+      segmentColorValue = ( c >> 16) & 255;
+      break;
+    case 2:
+      segmentColorValue = ( c >> 8) & 255;
+      break;
+    case 3:
+      segmentColorValue = c & 255;
+      break;
+  }
+  return segmentColorValue;
+}
+
+// set all leds to brightness
+void setBrightness(float brightness){
+    for(int i = 0; i < NUMPIXELS; i++){
+        pixels.setPixelColor(i, pixels.Color( brightness * getPixelColorComponent(i, 1) / ((float)255),
+                                              brightness * getPixelColorComponent(i, 2) / ((float)255),
+                                              brightness * getPixelColorComponent(i, 3) / ((float)255)));
+    }
+}
+
+// set all leds to color c
 void set_color(uint32_t c){
     for(int i = 0; i < NUMPIXELS; i++){
        pixels.setPixelColor(i, c);
